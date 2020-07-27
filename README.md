@@ -22,7 +22,7 @@ and the smallest around 0.00006. Add, Subtract, Multiple, Divide and Square root
 Scientific notation.
 
 ## Block Diagram
-![Block diagram of the calculator](./Blockdiagram.svg)
+![Block diagram of the calculator](./Blockdiagram.png)
 
 The whole Calculator can be split into three parts. 
 
