@@ -1,5 +1,20 @@
 # Scientific Calculator in Minecraft
 
+## Content
+
+1. [Introduction](#introduction)
+2. [Block Diagram](#block-diagram)
+3. [Redstone basics](#redstone-basics)
+4. [Memory architecture](#memory-architecture)
+5. [Instruction Set Architecture](#instruction-set-architecture)
+    1. [FPU Opcodes](#fpu-opcodes)
+    2. [ALU Opcodes](#alu-opcodes)
+    3. [Flags](#flags)
+6. [Assembly Program](#assembly-program)
+7. [Conclusion](#conclusion)
+
+## Introduction
+
 This document describes some architectural decisions I made as well as concepts I implemented in my Scientific
 Calculator I built in Minecraft. I built this Calculator back in 2016/17 when I was 15 and published a video of it on
 YouTube on May 1st 2017. It's a nice and short summary and can be viewed
@@ -188,9 +203,9 @@ Following ALU Opcodes exist:
 
 ### Flags
 
-All conditional branches jump depend on if a specific flag in the flag register is set. The values in the flag 
-register are updated when the very last bit in the machine code is set. It will then examine the outputs and inputs of
-both the ALU and the FPU for that specific instruction and update all flags in the flag register accordingly.
+All conditional branches jump depend on if a specific flag in the flag register is set. The values in the flag register
+are updated when the very last bit in the machine code is set. It will then examine the outputs and inputs of both the
+ALU and the FPU for that specific instruction and update all flags in the flag register accordingly.
 
 Following flags are available:
 
@@ -208,3 +223,76 @@ Following flags are available:
 
 OP1 and OP2 are either the two source registers or a register and the constant in the RRI layout.
 
+## Assembly program
+
+As previously mentioned, more complicated operations such as calculating the sine of a number were implemented using
+algorithms written in machine code. During development the program was first written down in Mnemonic to easily be able
+to edit and reason about the code. Only later and during debugging would I translate them manually into machine code and
+write them into the ROM of the Minecraft Calculator.
+
+Each line consisted of both an FPU instruction, and an ALU instruction as these are both executed in parallel (except
+for the FILOAD instruction). To signify that an instruction should save it's generated flags into the flag register I
+used a `°` symbol at the end of the line. Operands in instructions are separated by `;`. Line comments started with `#`.
+
+As a small example, here's the program for calculating the natural logarithm of a number in ST0 using a taylor series:
+
+```
+46    FCLOAD 0		ADDI R4;R0;3				#Logarithm
+47    FADD ST0;ST1	ADDI R1;R0;2
+48    FEXP			ADDI R2;R0;9
+49    FSTORE R5		WAIT
+50    FMANT			WAIT
+51    FCLOAD 1		WAIT
+52    FADD ST0;ST1	WAIT
+53    FCLOAD 1		WAIT
+54    FSUBP ST2;ST0	WAIT
+55    FDIVP ST1;ST0	WAIT
+56    FCLOAD 0		WAIT
+57    FADD ST0;ST1	WAIT
+58    FCLOAD 1		WAIT
+59    FMUL ST0;ST2	WAIT
+60    FMUL ST0;ST0	WAIT
+61    FMUL ST2;ST0	WAIT
+62    FLOAD R4		ADD R4;R4;R1
+63    FDIVR ST3;ST0	OR R0;R4;R2		°
+64    FADDP ST2;ST0	BNE 61
+65    FSTORE 0		WAIT
+66    FADD ST0;ST0	WAIT
+67    FCLOAD 6		WAIT
+68    FLOAD R5		WAIT
+69    FMULP ST1;ST0	WAIT
+70    FADDP ST1;ST0	RET
+```
+
+Line numbers on the left were added here for correctness and are not part of the actual assembly code.
+
+The full listing of the calculators program can be viewed [here](assembly.txt)
+
+## Conclusion
+
+It's been roughly 3 years now since I finished this project. In those 3 years, while focused a lot more on programming,
+I learned a lot more about Computer Science in general and there are many things I would do differently today than back
+then. The thing I am most proud of is probably the Instruction Set Architecture. While it being 32 Bit makes it
+relatively enormous compared to the 8 bit and 16 bit the ALU and FPU operate on, allowing FPU and ALU instructions to
+operate parallel turned out quite useful.
+
+Things I would change in a second iteration of the CPU would be:
+
+* Pipelining:
+  The CPUs speed is currently massively bottlenecked by just a few operations. In particular Floating Point Division
+  takes ages compared to any other operation. Pipelining the whole CPU would by far be one of the most effective
+  optimizations and would be one of the most fun and complicated to implement as well.
+* Better circuits:
+  Pretty much all adders in the Calculator, including in the multiply and division circuits, are Ripple Carry Adders. I
+  am not sure if it would be feasible in Minecraft to use CLA adders and relatives due to space constraints, but it
+  would definitely yield massive improvements
+* Better flag handling:
+  In hindsight I feel like it is very awkward and unnecessary to set a bit at the end of a machine code instruction to
+  save flags to a flag register. Today I would probably make the flags be updated each instruction and make sure that
+  instructions only update specific flags that make sense instead of all of them.
+
+There is also a bit more space for more instructions in the ALU, but I simply implemented those that I needed at the
+time. 
+
+I am hoping that one day I will once again find the time to get back into Micro architectures and CPUs and be able to
+implement a spiritual successor to this calculator on an FPGA. 
