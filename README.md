@@ -82,6 +82,8 @@ on the OP codes specified for both FPU and ALU.
 
 ![Instruction Set Architecture of the Calculator](./ISA.png)
 
+### FPU Opcodes
+
 The FPU OP Code is 5 bit allowing for a maximum of 32 operations. Unless the FI layout is used the next 3 bits STn is
 the other operand of an operation. Operations may also push or pop values from the stack.
 
@@ -123,4 +125,86 @@ Following FPU OP Codes exist:
 | FBLD          | 11001             | Pushes number N from display | N/A                           |
 | FBSTP         | 11010             | Pop ST0 to display | N/A                           |
 
-TODO: ALU OP Codes, Flag register
+The `FCLOAD` instruction pushes a common math constant onto the FPU stack. Depending on the STn field, following math
+constants are loaded:
+
+| STn Value | Constant |
+| --------|----------|
+| 0       | 0        |
+| 1       | 1        |
+| 2       | Pi       |
+| 3       | ln of 10 |
+| 4       | log2 of e|
+| 5       | log10 of 2|
+| 6       | ln of 2  |
+| 7       | e        |
+
+### ALU Opcodes
+
+Depending on the ALU instruction one of the three layouts RRR, RRI or JA are used. Most instructions use the RRR layout.
+It's a RISC typical 3 register instruction layouts which saves into first specified destination register and uses the
+latter 2 registers as left and right operands. The RRI layout is used with instructions that use a constant as the
+second operand. For both conditional and unconditional branches the JA layout is used to specify the target address.
+
+Following ALU Opcodes exist:
+
+| Assembly name | OP-Code in binary | Description        | ISA Layout used if applicable |
+| ------------- | ----------------- | ------------------ | ----------------------------- |
+| WAIT          | 000000            | No-op              | N/A                           |
+| ADD           | 000001            | Des = OP1 + OP2    | RRR                           |
+| ADC           | 000010            | Des = OP1 + OP2 + 1| RRR                           |
+| SUB           | 000011            | Des = OP1 - OP2    | RRR                           |
+| SBC           | 000100            | Des = OP1 - OP2 - 1| RRR                           |
+| OR            | 000101            | Des = OP1 OR OP2   | RRR                           |
+| AND           | 000110            | Des = OP1 AND OP2  | RRR                           |
+| XOR           | 000111            | Des = OP1 XOR OP2  | RRR                           |
+| NOT           | 001000            | Des = NOT OP1      | RRR                           |
+| SHR           | 001001            | Des = OP1 /2       | RRR                           |
+| SHL           | 001010            | Des = OP1 * 2      | RRR                           |
+| ADDI          | 001011            | Des = OP1 + I      | RRI                           |
+| ANDI          | 001100            | Des = OP1 AND I    | RRI                           |
+| BEQ           | 001101            | Jump if EQ set     | JA                            |
+| BNE           | 001110            | Jump if EQ not set | JA                            |
+| BMI           | 001111            | Jump if N set      | JA                            |
+| BPL           | 010000            | Jump if N not  set | JA                            |
+| BCS           | 010001            | Jump if C set      | JA                            |
+| BCC           | 010010            | Jump if C not set  | JA                            |
+| BLO           | 010011            | Jump if L set      | JA                            |
+| BLS           | 010100            | Jump if L or EQ set| JA                            |
+| BHS           | 010101            | Jump if H or EQ set| JA                            |
+| BHI           | 010110            | Jump if H set      | JA                            |
+| BLT           | 010110            | Jump if LE set     | JA                            |
+| BLE           | 010111            | Jump if LE or EQ set| JA                            |
+| BGE           | 011000            | Jump if G or EQ set| JA                            |
+| BGT           | 011001            | Jump if G set      | JA                            |
+| FBEZ          | 011011            | Jump if F0 set     | JA                            |
+| FBNZ          | 011100            | Jump if F0 not set | JA                            |
+| FBMI          | 011101            | Jump if FN set     | JA                            |
+| FBPL          | 011110            | Jump if FN not set | JA                            |
+| JMP           | 011111            | Unconditional Jump | JA                            |
+| JALS          | 100000            | Jump and push current Program Counter + 1 to Address Stack | JA                           |
+| RET           | 100001            | Jump to the top address on the address stack and pop it off the stack | N/A                            |
+| END           | 100010            | Set Program counter to 0 and halt | N/A                            |
+
+### Flags
+
+All conditional branches jump depend on if a specific flag in the flag register is set. The values in the flag 
+register are updated when the very last bit in the machine code is set. It will then examine the outputs and inputs of
+both the ALU and the FPU for that specific instruction and update all flags in the flag register accordingly.
+
+Following flags are available:
+
+| Flag | Condition |
+| ---- | --------- |
+| EQ   | OP1 == OP2|
+| N    | ALU Result is negative |
+| C    | Carry Overflow in the ALU |
+| L    | unsigned OP1 < OP2 |
+| H    | unsigned OP1 > OP2 |
+| LE   | signed OP1 < OP2 |
+| G    | signed OP1 > OP2 |
+| F0   | FPU Result is 0  |
+| FN   | FPU Result is negative |
+
+OP1 and OP2 are either the two source registers or a register and the constant in the RRI layout.
+
